@@ -108,7 +108,7 @@ public class Constants {
                 prop.load(new FileReader("config.properties"));
             }
 
-            PORT = Integer.parseInt(getProperty(prop, "PORT", "8080"));
+            PORT = Integer.parseInt(prop.getProperty("PORT", "6000"));
             HTTP_WORKERS = getProperty(prop, "HTTP_WORKERS",
                     String.valueOf(Runtime.getRuntime().availableProcessors()));
             PROXY_PART = getProperty(prop, "PROXY_PART");

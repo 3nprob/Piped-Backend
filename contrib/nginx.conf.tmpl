@@ -41,6 +41,7 @@ server {
 
   location / {
     root /var/www;
+    try_files $uri $uri/ /index.html =404;
     sendfile on;
     aio threads=default;
   }

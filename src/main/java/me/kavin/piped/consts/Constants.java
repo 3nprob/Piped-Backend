@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.kavin.piped.utils.PageMixin;
+import me.kavin.piped.utils.ProxySelectorImpl;
 import me.kavin.piped.utils.RequestUtils;
 import me.kavin.piped.utils.resp.ListLinkHandlerMixin;
 import okhttp3.OkHttpClient;
@@ -22,6 +23,7 @@ import org.schabi.newpipe.extractor.localization.ContentCountry;
 import java.io.File;
 import java.io.FileReader;
 import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.ProxySelector;
 import java.util.List;
 import java.util.Properties;
@@ -164,12 +166,17 @@ public class Constants {
             OkHttpClient.Builder builder_noredir = new OkHttpClient.Builder()
                     .followRedirects(false)
                     .addInterceptor(BrotliInterceptor.INSTANCE);
-            if (HTTP_PROXY != null && HTTP_PROXY.contains(":")) {
+            if (!StringUtils.isEmpty(HTTP_PROXY) && HTTP_PROXY.contains(":")) {
                 String host = StringUtils.substringBefore(HTTP_PROXY, ":");
                 String port = StringUtils.substringAfter(HTTP_PROXY, ":");
-                InetSocketAddress sa = new InetSocketAddress(host, Integer.parseInt(port));
-                ProxySelector ps = ProxySelector.of(sa);
+                ProxySelectorImpl ps = new ProxySelectorImpl(host, Integer.parseInt(port));
                 ProxySelector.setDefault(ps);
+                final Proxy proxy  = new Proxy(
+                    Proxy.Type.HTTP,
+                    new InetSocketAddress(host, Integer.parseInt(port))
+                );
+                builder.proxy(proxy);
+                builder_noredir.proxy(proxy);
             }
             h2client = builder.build();
             h2_no_redir_client = builder_noredir.build();

@@ -15,6 +15,8 @@ import org.schabi.newpipe.extractor.exceptions.ReCaptchaException;
 
 import java.io.IOException;
 import java.net.HttpCookie;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.concurrent.TimeUnit;
 
 public class DownloaderImpl extends Downloader {
@@ -22,6 +24,21 @@ public class DownloaderImpl extends Downloader {
     private static HttpCookie saved_cookie;
     private static long cookie_received;
     private static final Object cookie_lock = new Object();
+
+    final AsyncLoadingCache<Request, Response> responseCache = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.MINUTES)
+            .scheduler(Scheduler.systemScheduler())
+            .maximumSize(100).buildAsync(this::executeRequest);
+
+    @Override
+    public Response execute(@NotNull Request request) {
+        try {
+            return responseCache.get(request).get();
+        } catch (Exception e) {
+            System.out.println("FFFFFFFFFAIL: " + request.url());
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * Executes a request with HTTP/2.
@@ -39,6 +56,18 @@ public class DownloaderImpl extends Downloader {
                 .url(request.url())
                 .method(request.httpMethod(), body)
                 .header("User-Agent", Constants.USER_AGENT);
+        /*
+        if (!StringUtils.isEmpty(Constants.HTTP_PROXY) && Constants.HTTP_PROXY.contains(":")) {
+            String host = StringUtils.substringBefore(Constants.HTTP_PROXY, ":");
+            String port = StringUtils.substringAfter(Constants.HTTP_PROXY, ":");
+            builder.proxy(
+                new Proxy(
+                  Proxy.Type.HTTP,
+                  new InetSocketAddress(host, Integer.parseInt(port))
+                )
+            );
+        }
+        */
 
         if (saved_cookie != null && !saved_cookie.hasExpired())
             builder.header("Cookie", saved_cookie.getName() + "=" + saved_cookie.getValue());
